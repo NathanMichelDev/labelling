@@ -7,6 +7,10 @@ import json
 from google.cloud import firestore
 from google.oauth2 import service_account
 
+if st.experimental_get_query_params().get("login", [""])[0] != "fifteen":
+    st.error("You are not authorized to access this page")
+    st.stop()
+
 key_dict = json.loads(st.secrets["textkey"])
 creds = service_account.Credentials.from_service_account_info(key_dict)
 db = firestore.Client(credentials=creds, project=creds.project_id)
@@ -37,8 +41,10 @@ def get_labels():
 
 if "labels" not in st.session_state:
     st.session_state.labels = get_labels()
-
-trip_id = st.text_input("Enter your trip id")
+trip_id = st.text_input(
+    "Enter your trip id",
+    value=st.experimental_get_query_params().get("trip_id", [""])[0],
+)
 if trip_id:
     label_type = st.radio("Label type", ("Tandem", "Tandem partiel", "Solo", "Autre"))
     details = st.text_input("Enter details")
