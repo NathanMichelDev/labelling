@@ -21,7 +21,25 @@ TANDEM_LABELS = {
     "Autre": "Aucun des labels ne correspond (précisez dans la rubrique *Remarques*).",
 }
 TEXT_TANDEM = """
-    La labelisation pour la détection de chute est complexe. De manière générale, une chute est un évènement où le vélo
+    # Tandem
+    \nLe label tandem indique si le trajet a été effectué avec un ou deux utilisateurs sur le vélo. Il se peut que 
+    vous n'ayez pas fait le trajet soit totalement seul soit totalement en tandem. Dans ce cas, sélectionnez
+    soit **Tandem partiel** soit **Autre**, et apportez des précisions si besoin dans la rubrique *Remarques*.
+    """
+for label in TANDEM_LABELS:
+    TEXT_TANDEM += f"\n- **{label}** : {TANDEM_LABELS[label]}"
+
+CHUTE_LABELS = {
+    "Pas de chute": "Le vélo n'est jamais tombé.",
+    "Chute": "Vous étiez sur le vélo lorsqu'il est tombé.",
+    "Chute vélo seul": "Le vélo est tombé mais vous n'étiez pas dessus.",
+    "Manipulation": "Le vélo a été mis au sol (ou horizontal) de manière volontaire.",
+    "Ne sait pas": "Vous ne vous souvenez pas de ce trajet.",
+    "Autre": "Aucun des labels ne correspond (précisez dans la rubrique *Remarques*).",
+}
+TEXT_CHUTE = """
+    # Chutes
+    \nLa labelisation pour la détection de chute est complexe. De manière générale, une chute est un évènement où le vélo
     est à l'horizontal. Il peut y avoir différents types de chutes :
     \n- à l'arrêt ou en mouvement,
     \n- vélo seul ou avec l'utilisateur.
@@ -33,22 +51,7 @@ TEXT_TANDEM = """
     - trouver les utilisateurs qui mettent les vélos au sol de manière répétitive (chute volontaire à l'arrêt sans utilisateur)
     et ne pas mélanger les deux catégories.
     \nPour cela, nous avons introduit les catégories suivantes :
-    """
-for label in TANDEM_LABELS:
-    TEXT_TANDEM += f"\n- **{label}** : {TANDEM_LABELS[label]}"
 
-CHUTE_LABELS = {
-    "Pas de chute": "Le vélo n'a jamais chuté (position horizontale).",
-    "Chute": "Vous étiez sur le vélo lors de la chute.",
-    "Chute vélo seul": "Le vélo est tombé alors que vous n'étiez pas dessus.",
-    "Manipulation": "Vous avez manipulé le vélo, et celui ci peut avoir été mis à l'horizontal.",
-    "Ne sait pas": "Vous ne vous souvenez pas de ce trajet.",
-    "Autre": "Aucun des labels ne correspond (précisez dans la rubrique *Remarques*).",
-}
-TEXT_CHUTE = """
-    Le label tandem permet de savoir si le trajet a été effectué par un ou deux utilisateurs. Il se peut que 
-    vous n'ayez pas fait le trajet soit totalement seul soit totalement en tandem. Dans ce cas, sélectionnez
-    soit **Tandem partiel** soit **Autre**, et apportez des précisions si besoin dans la rubrique *Remarques*.
     """
 for label in CHUTE_LABELS:
     TEXT_CHUTE += f"\n- **{label}** : {CHUTE_LABELS[label]}"
@@ -61,7 +64,8 @@ ASSIT_QUALITY_LABELS = {
     "Ne sait pas": "Vous ne vous souvenez pas.",
 }
 TEXT_ASSIT_QUALITY = """
-    Nous faisons des tests sur l'assistance des vélos, en particulier pour diminuer la consommation en trajet. 
+    # Qualité de l'assistance
+    \nNous faisons des tests sur l'assistance des vélos, en particulier pour diminuer la consommation en trajet. 
     Il est important de conserver un bon ressenti utilisateur. Pour cela, nous avons besoin de savoir comment
     vous avez jugé l'assistance sur votre trajet.
     """
@@ -213,14 +217,11 @@ if st.button("Envoyer"):
 
 st.markdown("---")
 # TANDEM
-st.header("Signification des labels")
-cols = st.columns(3)
-with cols[0]:
-    with st.expander("Tandem", expanded=False):
+with st.expander("Signification des labels"):
+    cols = st.columns(3)
+    with cols[0]:
         st.markdown(TEXT_TANDEM)
-with cols[1]:
-    with st.expander("Chute", expanded=False):
+    with cols[1]:
         st.markdown(TEXT_CHUTE)
-with cols[2]:
-    with st.expander("Qualité de l'assistance", expanded=False):
+    with cols[2]:
         st.markdown(TEXT_ASSIT_QUALITY)
