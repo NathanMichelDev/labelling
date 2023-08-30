@@ -6,6 +6,70 @@ from datetime import datetime as date
 
 from google.oauth2 import service_account
 
+st.set_page_config(
+    layout="wide",  # Can be "centered" or "wide". In the future also "dashboard", etc.
+    page_title="Labelling",  # String or None. Strings get appended with "• Streamlit".
+    page_icon="🗒️",  # String, anything supported by st.image, or None.
+)
+
+ENVIRONMENTS = ["staging", "preprod", "prod", "partners", "omega", "sigma"]
+TANDEM_LABELS = {
+    "Solo": "La quasi totalité de ce trajet a été réalisée seul(e).",
+    "Tandem": "La quasi totalité de ce trajet a été réalisée à deux personnes.",
+    "Tandem partiel": "Une partie non négligeable de ce trajet a été réalisée à deux personnes.",
+    "Ne sait pas": "Vous ne vous souvenez pas.",
+    "Autre": "Aucun des labels ne correspond (précisez dans la rubrique détails).",
+}
+TEXT_TANDEM = """
+    La labelisation pour la détection de chute est complexe. De manière générale, une chute est un évènement où le vélo
+    est à l'horizontal. Il peut y avoir différents types de chutes :
+    \n- à l'arrêt ou en mouvement,
+    \n- vélo seul ou avec l'utilisateur.
+    \n- volontaire (manipulation ou vandalisme) ou involontaire (accident).
+    \nAfin de caractériser au mieux les chutes, il est crutial pour nous d'avoir le plus de précision possible lors de la 
+    labelisation. En effet, nous voudrions pouvoir être capables de différencier et catégoriser 
+    les chutes pour :
+    - identifier les zones où la pratique du vélo est dangereuse (chute involontaire en mouvement avec utilisateur)
+    - trouver les utilisateurs qui mettent les vélos au sol de manière répétitive (chute volontaire à l'arrêt sans utilisateur)
+    et ne pas mélanger les deux catégories.
+    \nPour cela, nous avons introduit les catégories suivantes :
+    """
+for label in TANDEM_LABELS:
+    TEXT_TANDEM += f"\n- **{label}** : {TANDEM_LABELS[label]}"
+
+CHUTE_LABELS = {
+    "Pas de chute": "Le vélo n'a jamais chuté (position horizontale).",
+    "Chute": "Vous étiez sur le vélo lors de la chute.",
+    "Chute vélo": "Le vélo est tombé alors que vous n'étiez pas dessus.",
+    "Manipulation": "Vous avez manipulé le vélo, et celui ci peut avoir été mis à l'horizontal.",
+    "Ne sait pas": "Vous ne vous souvenez pas de ce trajet.",
+    "Autre": "Aucun des labels ne correspond (précisez dans la rubrique détails).",
+}
+TEXT_CHUTE = """
+    Le label tandem permet de savoir si le trajet a été effectué par un ou deux utilisateurs. Il se peut que 
+    vous n'ayez pas fait le trajet soit totalement seul soit totalement en tandem. Dans ce cas, sélectionnez
+    soit **Tandem partiel** soit **Autre**, et apportez des précisions si besoin dans la rubrique détails.
+    """
+for label in CHUTE_LABELS:
+    TEXT_CHUTE += f"\n- **{label}** : {CHUTE_LABELS[label]}"
+
+ASSIT_QUALITY_LABELS = {
+    "RAS": "Rien à signaler.",
+    "++": "L'assistance a été excellente.",
+    "+": "L'assistance a été bonne.",
+    "-": "L'assistance était moins bien que d'habitude.",
+    "--": "L'assistance était problématique.",
+    "Pas d'assistance": "Vous n'avez pas eu d'assistance.",
+    "Ne sait pas": "Vous ne vous souvenez pas.",
+}
+TEXT_ASSIT_QUALITY = """
+    Nous faisons des tests sur l'assistance des vélos, en particulier pour diminuer la consommation en trajet. 
+    Il est important de conserver un bon ressenti utilisateur. Pour cela, nous avons besoin de savoir comment
+    vous avez jugé l'assistance sur votre trajet.
+    """
+for label in ASSIT_QUALITY_LABELS:
+    TEXT_ASSIT_QUALITY += f"\n- **{label}** : {ASSIT_QUALITY_LABELS[label]}"
+
 
 def get_creds():
     return service_account.Credentials.from_service_account_info(
@@ -90,154 +154,75 @@ if "creds" not in st.session_state:
 sheet_url = st.secrets["sheet_url"]
 sheet_name = st.secrets["sheet_name"]
 
-# Boolean that keeps track if the form can be submitted
-flag_can_insert = True
-
 # Display the form
-st.title("Labelisation des trajets")
-st.header("Informations sur le trajet")
-cols = st.columns(3)
+st.header("Context du trajet")
+cols = st.columns(9)
 with cols[0]:
     trip_id = st.text_input(
         "Id du trajet",
         value=st.experimental_get_query_params().get("trip_id", [""])[0],
     )
-    if trip_id:
-        if len(trip_id) != 20:
-            st.info("L'id du trajet n'est pas correcte.")
-            flag_can_insert = False
+
 with cols[1]:
-    environment = st.text_input(
-        "Environnement",
-        value=st.experimental_get_query_params().get("env", [""])[0],
-    )
-    if environment:
-        if environment not in (
-            "staging",
-            "preprod",
-            "prod",
-            "partners",
-            "omega",
-            "sigma",
-        ):
-            st.info(
-                "Environnement invalide. Les valeurs possibles sont staging, preprod, prod,"
-                " partners, omega, et sigma."
-            )
-            flag_can_insert = False
+    if st.experimental_get_query_params().get("env", [""])[0] in ENVIRONMENTS:
+        idx = ENVIRONMENTS.index(st.experimental_get_query_params().get("env", [""])[0])
+    else:
+        idx = 0
+    environment = st.selectbox("Environnement", ENVIRONMENTS, index=idx)
 with cols[2]:
     user_name = st.text_input("Votre nom (Optionel)")
-
-# TANDEM
-st.header("Tandem")
-TANDEM_LABELS = {
-    "Solo": "la quasi totalité de ce trajet a été réalisée seul(e).",
-    "Tandem": "la quasi totalité de ce trajet a été réalisée à deux personnes.",
-    "Tandem partiel": "une partie non négligeable de ce trajet a été réalisée à deux personnes.",
-    "Ne sait pas": "vous ne vous souvenez pas.",
-    "Autre": "aucun des labels ne correspond (précisez dans la rubrique détails).",
-}
-with st.expander("Plus d'infos sur les labels tandem", expanded=False):
-    text = """
-        Le label tandem permet de savoir si le trajet a été effectué par un ou deux utilisateurs. Il se peut que 
-        vous n'ayez pas fait le trajet soit totalement seul soit totalement en tandem. Dans ce cas, sélectionnez
-        soit **Tandem partiel** soit **Autre**, et apportez des précisions si besoin dans la rubrique détails.
-        """
-    for label in TANDEM_LABELS:
-        text += f"\n- **{label}** : {TANDEM_LABELS[label]}"
-    st.markdown(text)
-cols = st.columns(2)
-with cols[0]:
-    label_tandem = st.selectbox(
-        "Label tandem", [""] + list(TANDEM_LABELS.keys()), label_visibility="collapsed"
-    )
-with cols[1]:
-    if label_tandem:
-        st.info(f"**Vous avez indiqué que {TANDEM_LABELS[label_tandem]}**")
+if not trip_id:
+    st.info("Veuillez renseigner l'id du trajet.")
+    st.stop()
+else:
+    if len(trip_id) != 20:
+        st.error("L'id du trajet n'est pas valide.")
+        st.stop()
     else:
-        st.warning("Vous n'avez pas renseigné ce champ.")
+        url = f"https://control.{environment}.fifteen.eu/trips/{trip_id}"
+        with cols[3]:
+            st.write(f"[Voir le trajet sur Control]({url})")
 
-st.header("Chute")
-CHUTE_LABELS = {
-    "Pas de chute": "le vélo n'a jamais chuté (position horizontale).",
-    "Chute": "vous étiez sur le vélo lors de la chute.",
-    "Chute vélo": "le vélo est tombé alors que vous n'étiez pas dessus.",
-    "Manipulation": "vous avez manipulé le vélo, et celui ci peut avoir été mis à l'horizontal.",
-    "Ne sait pas": "vous ne vous souvenez pas de ce trajet.",
-    "Autre": "aucun des labels ne correspond (précisez dans la rubrique détails).",
-}
-chute_text = """
-
-    La labelisation pour la détection de chute est complexe. De manière générale, une chute est un évènement où le vélo
-    est à l'horizontal. Il peut y avoir différents types de chutes :
-    \n- à l'arrêt ou en mouvement,
-    \n- vélo seul ou avec l'utilisateur.
-    \n- volontaire (manipulation ou vandalisme) ou involontaire (accident).
-    \nAfin de caractériser au mieux les chutes, il est crutial pour nous d'avoir le plus de précision possible lors de la 
-    labelisation. En effet, nous voudrions pouvoir être capables de différencier et catégoriser 
-    les chutes pour :
-    - identifier les zones où la pratique du vélo est dangereuse (chute involontaire en mouvement avec utilisateur)
-    - trouver les utilisateurs qui mettent les vélos au sol de manière répétitive (chute volontaire à l'arrêt sans utilisateur)
-    et ne pas mélanger les deux catégories.
-    \nPour cela, nous avons introduit les catégories suivantes :
-    """
-for label in CHUTE_LABELS:
-    chute_text += f"\n- **{label}** : {CHUTE_LABELS[label]}"
-
-with st.expander("Plus d'infos sur les labels de chute", expanded=False):
-    st.markdown(chute_text)
-cols = st.columns(2)
+st.header("Information sur le trajet")
+cols = st.columns(4)
 with cols[0]:
-    label_chute = st.selectbox(
-        "Label chute",
-        [""] + list(CHUTE_LABELS.keys()),
-        label_visibility="collapsed",
-    )
+    label_tandem = st.selectbox("Tandem", list(TANDEM_LABELS.keys()))
+    st.info(f"**{TANDEM_LABELS[label_tandem]}**")
 with cols[1]:
-    if label_chute:
-        st.info(f"**Vous avez indiqué que {CHUTE_LABELS[label_chute]}**")
-    else:
-        st.warning("Vous n'avez pas renseigné ce champ.")
-
-st.header("Qualité de l'assistance")
-ASSIT_QUALITY_LABELS = {
-    "RAS": "l'assistance a fonctionné correctement.",
-    "Excellent": "l'assistance a été excellente.",
-    "Bonne": "l'assistance a été bonne.",
-    "Mauvaise": "l'assistance a été mauvaise.",
-    "Médiocre": "l'assistance a été médiocre.",
-    "Pas d'assistance": "vous n'avez pas eu d'assistance.",
-    "Ne sait pas": "vous ne vous souvenez pas.",
-}
-cols = st.columns(2)
-with cols[0]:
+    label_chute = st.selectbox("Chute", list(CHUTE_LABELS.keys()))
+    st.info(f"**{CHUTE_LABELS[label_chute]}**")
+with cols[2]:
     assist_quality = st.selectbox(
         "Qualité de l'assistance",
-        [""] + list(ASSIT_QUALITY_LABELS.keys()),
-        label_visibility="collapsed",
+        list(ASSIT_QUALITY_LABELS.keys()),
     )
+    st.info(f"**{ASSIT_QUALITY_LABELS[assist_quality]}**")
+with cols[3]:
+    details = st.text_area("Commentaires (Optionel)")
+if st.button("Envoyer"):
+    sheet = get_sheet(sheet_url, sheet_name)
+    insert_row(
+        sheet=sheet,
+        trip_id=trip_id,
+        env=environment,
+        label_tandem=label_tandem,
+        label_chute=label_chute,
+        assistance=assist_quality,
+        user=user_name,
+        details=details,
+    )
+    st.success("Merci !")
+
+st.markdown("---")
+# TANDEM
+st.header("Signification des labels")
+cols = st.columns(3)
+with cols[0]:
+    with st.expander("Tandem", expanded=False):
+        st.markdown(TEXT_TANDEM)
 with cols[1]:
-    if assist_quality:
-        st.info(f"**Vous avez indiqué que {ASSIT_QUALITY_LABELS[assist_quality]}**")
-    else:
-        st.warning("Vous n'avez pas renseigné ce champ.")
-
-
-details = st.text_area("Details (Optionel)")
-
-if flag_can_insert:
-    if st.button("Envoyer"):
-        sheet = get_sheet(sheet_url, sheet_name)
-        insert_row(
-            sheet=sheet,
-            trip_id=trip_id,
-            env=environment,
-            label_tandem=label_tandem,
-            label_chute=label_chute,
-            assistance=assist_quality,
-            user=user_name,
-            details=details,
-        )
-        st.success("Merci !")
-else:
-    st.error("Un champ du formulaire n'est pas correctement renseigné.")
+    with st.expander("Chute", expanded=False):
+        st.markdown(TEXT_CHUTE)
+with cols[2]:
+    with st.expander("Qualité de l'assistance", expanded=False):
+        st.markdown(TEXT_ASSIT_QUALITY)
