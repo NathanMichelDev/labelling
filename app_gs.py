@@ -14,11 +14,11 @@ st.set_page_config(
 
 ENVIRONMENTS = ["staging", "preprod", "prod", "partners", "omega", "sigma"]
 TANDEM_LABELS = {
-    "Solo": "La quasi totalité de ce trajet a été réalisée seul(e).",
-    "Tandem": "La quasi totalité de ce trajet a été réalisée à deux personnes.",
-    "Tandem partiel": "Une partie non négligeable de ce trajet a été réalisée à deux personnes.",
+    "Solo": "Vous étiez seul(e) sur le vélo.",
+    "Tandem": "Vous étiez deux sur le vélo.",
+    "Tandem partiel": "Vous étiez deux sur le vélo une partie du trajet.",
     "Ne sait pas": "Vous ne vous souvenez pas.",
-    "Autre": "Aucun des labels ne correspond (précisez dans la rubrique détails).",
+    "Autre": "Aucun des labels ne correspond (précisez dans la rubrique *Remarques*).",
 }
 TEXT_TANDEM = """
     La labelisation pour la détection de chute est complexe. De manière générale, une chute est un évènement où le vélo
@@ -40,25 +40,23 @@ for label in TANDEM_LABELS:
 CHUTE_LABELS = {
     "Pas de chute": "Le vélo n'a jamais chuté (position horizontale).",
     "Chute": "Vous étiez sur le vélo lors de la chute.",
-    "Chute vélo": "Le vélo est tombé alors que vous n'étiez pas dessus.",
+    "Chute vélo seul": "Le vélo est tombé alors que vous n'étiez pas dessus.",
     "Manipulation": "Vous avez manipulé le vélo, et celui ci peut avoir été mis à l'horizontal.",
     "Ne sait pas": "Vous ne vous souvenez pas de ce trajet.",
-    "Autre": "Aucun des labels ne correspond (précisez dans la rubrique détails).",
+    "Autre": "Aucun des labels ne correspond (précisez dans la rubrique *Remarques*).",
 }
 TEXT_CHUTE = """
     Le label tandem permet de savoir si le trajet a été effectué par un ou deux utilisateurs. Il se peut que 
     vous n'ayez pas fait le trajet soit totalement seul soit totalement en tandem. Dans ce cas, sélectionnez
-    soit **Tandem partiel** soit **Autre**, et apportez des précisions si besoin dans la rubrique détails.
+    soit **Tandem partiel** soit **Autre**, et apportez des précisions si besoin dans la rubrique *Remarques*.
     """
 for label in CHUTE_LABELS:
     TEXT_CHUTE += f"\n- **{label}** : {CHUTE_LABELS[label]}"
 
 ASSIT_QUALITY_LABELS = {
-    "RAS": "Rien à signaler.",
-    "++": "L'assistance a été excellente.",
-    "+": "L'assistance a été bonne.",
-    "-": "L'assistance était moins bien que d'habitude.",
-    "--": "L'assistance était problématique.",
+    "RAS": "Rien à signaler par rapport à d'habitude.",
+    "Plus agréable": "L'assistance a été plus agréable que d'habitude.",
+    "Moins agréable": "L'assistance a été moins agréable que d'habitude.",
     "Pas d'assistance": "Vous n'avez pas eu d'assistance.",
     "Ne sait pas": "Vous ne vous souvenez pas.",
 }
@@ -131,7 +129,7 @@ def insert_row(
         assistance,
         user,
         details,
-        False,
+        "Front",
         date.now().strftime("%Y-%m-%d %H:%M:%S"),
     ]
     # Insert the new row at the top of the sheet
@@ -139,7 +137,7 @@ def insert_row(
         new_row,
         new_index,
         value_input_option="USER_ENTERED",  # for the URL
-        inherit_from_before=True,  # Not sure if useful
+        inherit_from_before=False,  # Keep the formatting of the next row
     )
 
 
@@ -198,7 +196,7 @@ with cols[2]:
     )
     st.info(f"**{ASSIT_QUALITY_LABELS[assist_quality]}**")
 with cols[3]:
-    details = st.text_area("Commentaires (Optionel)")
+    details = st.text_area("Remarques (Optionel)")
 if st.button("Envoyer"):
     sheet = get_sheet(sheet_url, sheet_name)
     insert_row(
