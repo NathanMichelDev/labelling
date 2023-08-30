@@ -115,7 +115,7 @@ def insert_row(
             "Le trajet a déjà été labellisé. Merci de modifier directement "
             "sur la feuille de calcul ou contactez l'équipe data."
         )
-        return
+        return False
 
     # Set new_index as 2 to insert the new row at the top of the sheet. The first row is the header.
     new_index = 2
@@ -143,6 +143,7 @@ def insert_row(
         value_input_option="USER_ENTERED",  # for the URL
         inherit_from_before=False,  # Keep the formatting of the next row
     )
+    return True
 
 
 # Check if the user is authorized to access this page
@@ -203,7 +204,7 @@ with cols[3]:
     details = st.text_area("Remarques (Optionel)")
 if st.button("Envoyer"):
     sheet = get_sheet(sheet_url, sheet_name)
-    insert_row(
+    if insert_row(
         sheet=sheet,
         trip_id=trip_id,
         env=environment,
@@ -212,8 +213,9 @@ if st.button("Envoyer"):
         assistance=assist_quality,
         user=user_name,
         details=details,
-    )
-    st.success("Merci !")
+    ):
+        st.success("Merci !")
+
 
 st.markdown("---")
 # TANDEM
