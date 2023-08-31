@@ -160,6 +160,7 @@ sheet_name = st.secrets["sheet_name"]
 # Display the form
 st.header("Context du trajet")
 cols = st.columns(9)
+url = ""
 with cols[0]:
     trip_id = st.text_input(
         "Id du trajet",
@@ -183,10 +184,10 @@ else:
         st.stop()
     else:
         url = f"https://control.{environment}.fifteen.eu/trips/{trip_id}"
-        with cols[3]:
-            st.write(f"[Voir le trajet sur Control]({url})")
+if url:
+    st.write(f"[Voir le trajet sur Control]({url})")
 
-st.header("Information sur le trajet")
+st.header("Labellisation")
 cols = st.columns(4)
 with cols[0]:
     label_tandem = st.selectbox("Tandem", list(TANDEM_LABELS.keys()))
@@ -200,8 +201,9 @@ with cols[2]:
         list(ASSIT_QUALITY_LABELS.keys()),
     )
     st.info(f"**{ASSIT_QUALITY_LABELS[assist_quality]}**")
-with cols[3]:
-    details = st.text_area("Remarques (Optionel)")
+details = st.text_area(
+    "Remarques (Optionel)",
+)
 if st.button("Envoyer"):
     sheet = get_sheet(sheet_url, sheet_name)
     if insert_row(
@@ -219,11 +221,11 @@ if st.button("Envoyer"):
 
 st.markdown("---")
 # TANDEM
-with st.expander("Signification des labels"):
-    cols = st.columns(3)
-    with cols[0]:
-        st.markdown(TEXT_TANDEM)
-    with cols[1]:
-        st.markdown(TEXT_CHUTE)
-    with cols[2]:
-        st.markdown(TEXT_ASSIT_QUALITY)
+# with st.expander("Signification des labels"):
+cols = st.columns(3)
+with cols[0]:
+    st.markdown(TEXT_TANDEM)
+with cols[1]:
+    st.markdown(TEXT_CHUTE)
+with cols[2]:
+    st.markdown(TEXT_ASSIT_QUALITY)
