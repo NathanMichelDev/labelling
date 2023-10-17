@@ -183,7 +183,10 @@ else:
         st.error("L'id du trajet n'est pas valide.")
         st.stop()
     else:
-        url = f"https://control.{environment}.fifteen.eu/trips/{trip_id}"
+        if environment == "partners":
+            url = f"https://control.prod.partners-fs37hd8.fifteen.eu/trips/{trip_id}"
+        else:
+            url = f"https://control.{environment}.fifteen.eu/trips/{trip_id}"
 if url:
     st.write(f"[Voir le trajet sur Control]({url})")
 
