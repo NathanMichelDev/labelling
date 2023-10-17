@@ -121,8 +121,7 @@ def insert_row(
     new_index = 2
 
     # Create the url to the trip in control with the appropriate environment
-    url = f'=HYPERLINK(CONCATENATE("https://admin.", B{new_index},".fifteen.eu/trips/",A{new_index}),"URL")'
-
+    url = f'=HYPERLINK(CONCATENATE("https://admin.", if(B{new_index}="partners", "prod.partners-fs37hd8", B{new_index}),".fifteen.eu/trips/",A{new_index}),"URL")'
     # Create the new row to insert
     new_row = [
         trip_id,
