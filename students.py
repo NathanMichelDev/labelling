@@ -130,8 +130,19 @@ if worksheet_name in [sheet.title for sheet in sheet.worksheets()]:
     st.write(df)
     # Compute the results
     merged_dataframe = merge_result_predictions(df, result_dataframe)
-    score = compute_score(merged_dataframe)
-    st.write(f"Your score is: {score}")
+    # score = compute_score(merged_dataframe)
+    # st.write(f"Your score is: {score}")
+    # Compute the confusion matrix
+    confusion_matrix = pd.crosstab(
+        merged_dataframe["label_student"], merged_dataframe["label_result"]
+    )
+    st.write("Confusion matrix:")
+    st.write(confusion_matrix)
+    # Compute the score (sum of the diagonal)
+    score = (
+        1 - confusion_matrix.values.diagonal().sum() / confusion_matrix.values.sum()
+    ) * 100
+    st.write(f"Your score is: {score.round(2)}%")
     st.stop()
 
 # # Create a new worksheet
